@@ -60,9 +60,16 @@ from . import alyxraw
 log = logging.getLogger(__name__)
 
 
-def get_raw_field(key, field, multiple_entries=False):
-    query = alyxraw.AlyxRaw.Field & key & 'fname="{}"'.format(field)
-    return query.fetch('fvalue') if multiple_entries else query.fetch1('fvalue')
+def get_raw_field(key, field, multiple_entries=False, model=None):
+    if model:
+        query = alyxraw.AlyxRaw.Field & \
+            (alyxraw.AlyxRaw & 'model="{}"'.format(model)) & \
+            key & 'fname="{}"'.format(field)
+    else:
+        query = alyxraw.AlyxRaw.Field & key & 'fname="{}"'.format(field)
+
+    return query.fetch('fvalue') \
+        if multiple_entries else query.fetch1('fvalue')
 
 
 class InsertBuffer(object):
@@ -81,7 +88,7 @@ class InsertBuffer(object):
         self._queue += recs
 
     def flush(self, replace=False, skip_duplicates=False,
-              ignore_extra_fields=False, ignore_errors=False, chunksz=1):
+              ignore_extra_fields=False, chunksz=1):
         '''
         flush the buffer
         XXX: use kwargs?
@@ -91,8 +98,7 @@ class InsertBuffer(object):
         if qlen > 0 and qlen % chunksz == 0:
             try:
                 self._rel.insert(self._queue, skip_duplicates=skip_duplicates,
-                                 ignore_extra_fields=ignore_extra_fields,
-                                 ignore_errors=ignore_errors)
+                                 ignore_extra_fields=ignore_extra_fields)
                 self._queue.clear()
                 return qlen
             except dj.DataJointError as e:

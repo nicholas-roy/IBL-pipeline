@@ -1,5 +1,15 @@
+# some unused files
+scripts/update_entries.py
+scripts/compare_tables.py
+scripts/delete_shadow_tables.py
+scripts/report_missing_trialset.py
+scripts/update_entries.py	
+
 # IDEA configs
 .idea/
+
+# vscode settings
+.vscode/*
 
 # macOS
 .DS_Store
@@ -90,7 +100,7 @@ celerybeat-schedule
 *.sage.py
 
 # Environments
-.env
+.env*
 .venv
 env/
 venv/
@@ -114,6 +124,11 @@ venv.bak/
 # credential file
 dj_local_conf.json
 root/.one_params
+
+# docker related file
+docker-compose.yml
+docker-compose-local.yml
+ibl_docker_setup.sh
 
 # raw data file
 data/*

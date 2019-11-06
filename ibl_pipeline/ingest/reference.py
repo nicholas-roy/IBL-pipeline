@@ -1,11 +1,12 @@
-
 import datajoint as dj
+import uuid
 
 from . import alyxraw
 from . import get_raw_field as grf
 
 
-schema = dj.schema(dj.config.get('database.prefix', '') + 'ibl_ingest_reference')
+schema = dj.schema(dj.config.get('database.prefix', '') +
+                   'ibl_ingest_reference')
 
 
 @schema
@@ -20,6 +21,7 @@ class Lab(dj.Computed):
     time_zone:              varchar(255)
     reference_weight_pct:   float
     zscore_weight_pct:      float
+    lab_ts=CURRENT_TIMESTAMP:   timestamp
     """
     key_source = (alyxraw.AlyxRaw & 'model = "misc.lab"').proj(lab_uuid='uuid')
 
@@ -53,8 +55,10 @@ class LabMember(dj.Computed):
     is_staff:		        boolean		    # staff status
     is_superuser:	        boolean		    # superuser status
     is_stock_manager:       boolean         # stock manager status
+    labmember_ts=CURRENT_TIMESTAMP:   timestamp
     """
-    key_source = (alyxraw.AlyxRaw & 'model = "misc.labmember"').proj(user_uuid='uuid')
+    key_source = (alyxraw.AlyxRaw & 'model = "misc.labmember"').proj(
+        user_uuid='uuid')
 
     def make(self, key):
         key_lab_member = key.copy()
@@ -102,18 +106,23 @@ class LabMembership(dj.Computed):
     role=null:              varchar(255)
     mem_start_date=null:    date
     mem_end_date=null:      date
+    labmembership_ts=CURRENT_TIMESTAMP:   timestamp
     """
-    key_source = (alyxraw.AlyxRaw & 'model="misc.labmembership"').proj(lab_membership_uuid='uuid')
+    key_source = (alyxraw.AlyxRaw & 'model="misc.labmembership"').proj(
+        lab_membership_uuid='uuid')
 
     def make(self, key):
         key_mem = key.copy()
         key['uuid'] = key['lab_membership_uuid']
 
         lab_uuid = grf(key, 'lab')
-        key_mem['lab_name'] = (Lab & 'lab_uuid="{}"'.format(lab_uuid)).fetch1('lab_name')
+        key_mem['lab_name'] = \
+            (Lab & dict(lab_uuid=uuid.UUID(lab_uuid))).fetch1('lab_name')
 
         user_uuid = grf(key, 'user')
-        key_mem['user_name'] = (LabMember & 'user_uuid="{}"'.format(user_uuid)).fetch1('user_name')
+        key_mem['user_name'] = \
+            (LabMember & dict(user_uuid=uuid.UUID(user_uuid))).fetch1(
+                'user_name')
 
         role = grf(key, 'role')
         if role != 'None':
@@ -121,11 +130,11 @@ class LabMembership(dj.Computed):
 
         start_date = grf(key, 'start_date')
         if start_date != 'None':
-            key_mem['start_date'] = start_date
+            key_mem['mem_start_date'] = start_date
 
         end_date = grf(key, 'end_date')
         if end_date != 'None':
-            key_mem['end_date'] = end_date
+            key_mem['mem_end_date'] = end_date
 
         self.insert1(key_mem)
 
@@ -137,8 +146,10 @@ class LabLocation(dj.Computed):
     ---
     lab_name:           varchar(64)
     location_name:      varchar(255)    # name of the location
+    lablocation_ts=CURRENT_TIMESTAMP:   timestamp
     """
-    key_source = (alyxraw.AlyxRaw & 'model = "misc.lablocation"').proj(location_uuid='uuid')
+    key_source = (alyxraw.AlyxRaw & 'model = "misc.lablocation"').proj(
+        location_uuid='uuid')
 
     def make(self, key):
         key_loc = key.copy()
@@ -148,7 +159,9 @@ class LabLocation(dj.Computed):
         if lab_uuid == 'None':
             key_loc['lab_name'] = 'cortexlab'
         else:
-            key_loc['lab_name'] = (Lab & 'lab_uuid="{}"'.format(lab_uuid)).fetch1('lab_name')
+            key_loc['lab_name'] = \
+                (Lab & dict(lab_uuid=uuid.UUID(lab_uuid))).fetch1(
+                    'lab_name')
 
         self.insert1(key_loc)
 
@@ -160,8 +173,10 @@ class Project(dj.Computed):
     ---
     project_name:                varchar(255)
     project_description=null:    varchar(1024)
+    project_ts=CURRENT_TIMESTAMP:   timestamp
     """
-    key_source = (alyxraw.AlyxRaw & 'model="subjects.project"').proj(project_uuid='uuid')
+    key_source = (alyxraw.AlyxRaw & 'model="subjects.project"').proj(
+        project_uuid='uuid')
 
     def make(self, key):
         key_proj = key.copy()
@@ -177,4 +192,5 @@ class ProjectLabMember(dj.Manual):
     definition = """
     project_name:   varchar(255)
     user_name:      varchar(255)
+    projectlabmember_ts=CURRENT_TIMESTAMP:   timestamp
     """
